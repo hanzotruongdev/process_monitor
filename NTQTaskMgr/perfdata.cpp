@@ -32,7 +32,7 @@
 
 #define WIN32_LEAN_AND_MEAN
 #define NTOS_MODE_USER
-
+#define NANO_TO_SECOND	1/1000000000
 
 CRITICAL_SECTION                           PerfDataCriticalSection;
 PPERFDATA                                  pPerfDataOld = NULL;    /* Older perf data (saved to establish delta values) */
@@ -320,10 +320,6 @@ void PerfDataRefresh(void)
     }
 
     /* Now alloc a new PERFDATA array and fill in the data */
-    if (pPerfDataOld) {
-        HeapFree(GetProcessHeap(), 0, pPerfDataOld);
-    }
-    pPerfDataOld = pPerfData;
     /* Clear out process perf data structures with HEAP_ZERO_MEMORY flag: */
     pPerfData = (PPERFDATA)HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, sizeof(PERFDATA) * ProcessCount);
     pSPI = (PSYSTEM_PROCESS_INFORMATION_UNDOC)pBuffer;
@@ -415,6 +411,18 @@ ReadProcOwner:
 
                 GetProcessIoCounters(hProcess, &pPerfData[Idx].IOCounters);
                 CloseHandle(hProcess);
+
+				// caculte io speed
+				if (pPDOld)
+				{
+					pPerfData[Idx].ReadOperationsPerSecond = (pPerfData[Idx].IOCounters.ReadOperationCount - pPDOld->IOCounters.ReadOperationCount)/(dbSystemTime*100*NANO_TO_SECOND);
+					pPerfData[Idx].WriteOperationsPerSecond = (pPerfData[Idx].IOCounters.WriteOperationCount - pPDOld->IOCounters.WriteOperationCount)/(dbSystemTime*100*NANO_TO_SECOND);
+					pPerfData[Idx].OtherOperationsPerSecond = (pPerfData[Idx].IOCounters.OtherOperationCount - pPDOld->IOCounters.OtherOperationCount)/(dbSystemTime*100*NANO_TO_SECOND);
+					pPerfData[Idx].ReadTransferPerSecond = (pPerfData[Idx].IOCounters.ReadTransferCount - pPDOld->IOCounters.ReadTransferCount)/(dbSystemTime*100*NANO_TO_SECOND);
+					pPerfData[Idx].WriteTransferPerSecond = (pPerfData[Idx].IOCounters.WriteTransferCount - pPDOld->IOCounters.WriteTransferCount)/(dbSystemTime*100*NANO_TO_SECOND);
+					pPerfData[Idx].OtherTransferPerSecond = (pPerfData[Idx].IOCounters.OtherTransferCount - pPDOld->IOCounters.OtherTransferCount)/(dbSystemTime*100*NANO_TO_SECOND);
+				}
+				
             } else {
                 goto ClearInfo;
             }
@@ -436,6 +444,12 @@ ClearInfo:
         pPerfData[Idx].KernelTime.QuadPart = pSPI->KernelTime.QuadPart;
         pSPI = (PSYSTEM_PROCESS_INFORMATION_UNDOC)((LPBYTE)pSPI + pSPI->NextEntryOffset);
     }
+
+	if (pPerfDataOld) {
+		HeapFree(GetProcessHeap(), 0, pPerfDataOld);
+	}
+	pPerfDataOld = pPerfData;
+
     HeapFree(GetProcessHeap(), 0, pBuffer);
     LeaveCriticalSection(&PerfDataCriticalSection);
 }
@@ -1000,5 +1014,101 @@ BOOL PerfDataGet(ULONG Index, PPERFDATA *lppData)
     }
     LeaveCriticalSection(&PerfDataCriticalSection);
     return bSuccessful;
+}
+
+ULONGLONG PerformanceDataGetReadOperationsPerSecond(ULONG Index)
+{
+	ULONGLONG  ulRetValue;
+
+	EnterCriticalSection(&PerfDataCriticalSection);
+
+	if (Index < ProcessCount)
+		ulRetValue = pPerfData[Index].ReadOperationsPerSecond;
+	else
+		ulRetValue = 0;
+
+	LeaveCriticalSection(&PerfDataCriticalSection);
+
+	return ulRetValue;
+}
+
+ULONGLONG PerformanceDataGetWriteOperationsPerSecond(ULONG Index)
+{
+	ULONGLONG  ulRetValue;
+
+	EnterCriticalSection(&PerfDataCriticalSection);
+
+	if (Index < ProcessCount)
+		ulRetValue = pPerfData[Index].WriteOperationsPerSecond;
+	else
+		ulRetValue = 0;
+
+	LeaveCriticalSection(&PerfDataCriticalSection);
+
+	return ulRetValue;
+}
+
+ULONGLONG PerformanceDataGetOtherOperationsPerSecond(ULONG Index)
+{
+	ULONGLONG  ulRetValue;
+
+	EnterCriticalSection(&PerfDataCriticalSection);
+
+	if (Index < ProcessCount)
+		ulRetValue = pPerfData[Index].OtherOperationsPerSecond;
+	else
+		ulRetValue = 0;
+
+	LeaveCriticalSection(&PerfDataCriticalSection);
+
+	return ulRetValue;
+}
+
+ULONGLONG PerformanceDataGetReadTransferPerSecond(ULONG Index)
+{
+	ULONGLONG  ulRetValue;
+
+	EnterCriticalSection(&PerfDataCriticalSection);
+
+	if (Index < ProcessCount)
+		ulRetValue = pPerfData[Index].ReadTransferPerSecond;
+	else
+		ulRetValue = 0;
+
+	LeaveCriticalSection(&PerfDataCriticalSection);
+
+	return ulRetValue;
+}
+
+ULONGLONG PerformanceDataGetWriteTransferPerSecond(ULONG Index)
+{
+	ULONGLONG  ulRetValue;
+
+	EnterCriticalSection(&PerfDataCriticalSection);
+
+	if (Index < ProcessCount)
+		ulRetValue = pPerfData[Index].WriteTransferPerSecond;
+	else
+		ulRetValue = 0;
+
+	LeaveCriticalSection(&PerfDataCriticalSection);
+
+	return ulRetValue;
+}
+
+ULONGLONG PerformanceDataGetOtherTransferPerSecond(ULONG Index)
+{
+	ULONGLONG  ulRetValue;
+
+	EnterCriticalSection(&PerfDataCriticalSection);
+
+	if (Index < ProcessCount)
+		ulRetValue = pPerfData[Index].OtherTransferPerSecond;
+	else
+		ulRetValue = 0;
+
+	LeaveCriticalSection(&PerfDataCriticalSection);
+
+	return ulRetValue;
 }
 

@@ -69,6 +69,8 @@ BEGIN_MESSAGE_MAP(CNTQTaskMgrDlg, CDialogEx)
 	ON_WM_QUERYDRAGICON()
 	ON_WM_TIMER()
 	ON_NOTIFY(LVN_GETDISPINFO, IDC_LST_PROCESS, &CNTQTaskMgrDlg::OnLvnGetdispinfoLstProcess)
+	ON_NOTIFY(LVN_ITEMCHANGED, IDC_LST_PROCESS, &CNTQTaskMgrDlg::OnLvnItemchangedLstProcess)
+	ON_NOTIFY(HDN_ITEMCLICK, 0, &CNTQTaskMgrDlg::OnHdnItemclickLstProcess)
 END_MESSAGE_MAP()
 
 
@@ -219,3 +221,23 @@ void CNTQTaskMgrDlg::OnLvnGetdispinfoLstProcess(NMHDR *pNMHDR, LRESULT *pResult)
 
 	PerfDataGetText(Index, ColumnIndex, pnmdi->item.pszText, pnmdi->item.cchTextMax);
 }
+
+
+void CNTQTaskMgrDlg::OnLvnItemchangedLstProcess(NMHDR *pNMHDR, LRESULT *pResult)
+{
+	LPNMLISTVIEW pNMLV = reinterpret_cast<LPNMLISTVIEW>(pNMHDR);
+	// TODO: Add your control notification handler code here
+	*pResult = 0;
+}
+
+
+void CNTQTaskMgrDlg::OnHdnItemclickLstProcess(NMHDR *pNMHDR, LRESULT *pResult)
+{
+	LPNMHEADER phdr = reinterpret_cast<LPNMHEADER>(pNMHDR);
+	// TODO: Add your control notification handler code here
+	*pResult = 0;
+
+	SetSortColumn(phdr->iItem);
+}
+
+

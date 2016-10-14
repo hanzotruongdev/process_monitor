@@ -38,4 +38,6 @@ public:
 	afx_msg void OnTimer(UINT_PTR nIDEvent);
 	CString m_csStatus;
 	afx_msg void OnLvnGetdispinfoLstProcess(NMHDR *pNMHDR, LRESULT *pResult);
+	afx_msg void OnLvnItemchangedLstProcess(NMHDR *pNMHDR, LRESULT *pResult);
+	afx_msg void OnHdnItemclickLstProcess(NMHDR *pNMHDR, LRESULT *pResult);
 };

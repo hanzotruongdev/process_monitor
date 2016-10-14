@@ -48,6 +48,14 @@ typedef struct _PERFDATA
 	ULONG				GDIObjectCount;
 	IO_COUNTERS			IOCounters;
 
+	// io speed
+	ULONGLONG			ReadOperationsPerSecond;
+	ULONGLONG			WriteOperationsPerSecond;
+	ULONGLONG			OtherOperationsPerSecond;
+	ULONGLONG			ReadTransferPerSecond;
+	ULONGLONG			WriteTransferPerSecond;
+	ULONGLONG			OtherTransferPerSecond;
+
 	LARGE_INTEGER		UserTime;
 	LARGE_INTEGER		KernelTime;
 } PERFDATA, *PPERFDATA;
@@ -98,4 +106,12 @@ ULONG	PerfDataGetPhysicalMemorySystemCacheK(void);
 ULONG	PerfDataGetSystemHandleCount(void);
 
 ULONG	PerfDataGetTotalThreadCount(void);
+
+ULONGLONG PerformanceDataGetReadOperationsPerSecond(ULONG Index);
+ULONGLONG PerformanceDataGetWriteOperationsPerSecond(ULONG Index);
+ULONGLONG PerformanceDataGetOtherOperationsPerSecond(ULONG Index);
+ULONGLONG PerformanceDataGetReadTransferPerSecond(ULONG Index);
+ULONGLONG PerformanceDataGetWriteTransferPerSecond(ULONG Index);
+ULONGLONG PerformanceDataGetOtherTransferPerSecond(ULONG Index);
+
 
