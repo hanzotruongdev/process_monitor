@@ -240,7 +240,7 @@ int CALLBACK TaskMgrCompareProc(LPARAM lParam1, LPARAM lParam2,
 
 	case COLUMN_CPUUSAGE:
 		{
-			bRet = pdata1->CPUUsage > pdata1->CPUUsage;
+			bRet = pdata1->CPUUsage > pdata2->CPUUsage;
 		}
 		break;
 
