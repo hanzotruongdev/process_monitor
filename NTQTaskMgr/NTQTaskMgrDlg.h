@@ -4,6 +4,7 @@
 
 #pragma once
 #include "afxcmn.h"
+#include "afxwin.h"
 
 #define TIMER_UPDATE_LIST_PROCESS			1
 #define TIMER_UPDATE_LIST_PROCESS_INTERVAL	1000
@@ -40,4 +41,15 @@ public:
 	afx_msg void OnLvnGetdispinfoLstProcess(NMHDR *pNMHDR, LRESULT *pResult);
 	afx_msg void OnLvnItemchangedLstProcess(NMHDR *pNMHDR, LRESULT *pResult);
 	afx_msg void OnHdnItemclickLstProcess(NMHDR *pNMHDR, LRESULT *pResult);
+	afx_msg void OnSize(UINT nType, int cx, int cy);
+	void MenuHandler(UINT i);
+
+	int m_listCltVerticalDelta;
+	int m_listCltHorizontalDelta;
+
+	CEdit m_edtCltStatus;
+	CButton m_btnOk;
+	afx_msg void OnMenuSelect(UINT nItemID, UINT nFlags, HMENU hSysMenu);
+	void ExportPerfToFile();
+	BOOL OpenFile();
 };

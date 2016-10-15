@@ -1,7 +1,10 @@
 
 #include "stdafx.h"
+#include <Winternl.h>
 #include "perfdata.h"
 #include "ListProcessPage.h"
+#include "UndocumentStruct.h"
+#include "FileDataStruct.h"
 
 UINT    ColumnDataHints[COLUMN_NMAX];
 PROCESS_PAGE_SETTING g_structPageSetting = {0};
@@ -13,6 +16,7 @@ void InitListProcessPage(CListCtrl * objListCtlProcess)
 	// Init defalt setting
 	g_structPageSetting.bSortAscending = TRUE;
 	g_structPageSetting.iSortColumn = 0;
+	g_structPageSetting.bViewRealTime = TRUE;
 
 	// init array column info
 	ColumnDataHints[0] = COLUMN_IMAGENAME;
@@ -41,17 +45,27 @@ void InitListProcessPage(CListCtrl * objListCtlProcess)
 	objListCtlProcess->SetExtendedStyle(LVS_EX_GRIDLINES | LVS_EX_FULLROWSELECT);
 }
 
-void SetSortColumn(int iColumn)
+void ConfigSetSortColumn(int iColumn)
 {
 	if (iColumn != g_structPageSetting.iSortColumn)
 		g_structPageSetting.iSortColumn = iColumn;
 	else
-		ToggleSort();
+		ConfigToggleSort();
 }
 
-void ToggleSort()
+void ConfigToggleSort()
 {
 	g_structPageSetting.bSortAscending = !g_structPageSetting.bSortAscending;
+}
+
+void ConfigSetViewStyle(BOOL bViewRealtime)
+{
+	g_structPageSetting.bViewRealTime = bViewRealtime;
+}
+
+BOOL ConfigGetViewStyle()
+{
+	return g_structPageSetting.bViewRealTime;
 }
 
 BOOL PerfDataGetText(ULONG Index, ULONG ColumnIndex, LPTSTR lpText, int nMaxCount)
@@ -60,35 +74,73 @@ BOOL PerfDataGetText(ULONG Index, ULONG ColumnIndex, LPTSTR lpText, int nMaxCoun
 	LARGE_INTEGER  time;
 
 	if (ColumnDataHints[ColumnIndex] == COLUMN_IMAGENAME)
-		PerfDataGetImageName(Index, lpText, nMaxCount);
+		if (g_structPageSetting.bViewRealTime)
+			PerfDataGetImageName(Index, lpText, nMaxCount);
+		else
+			FileDataGetImageName(Index, lpText, nMaxCount);
 
 	if (ColumnDataHints[ColumnIndex] == COLUMN_PID)
-		wsprintfW(lpText, L"%lu", PerfDataGetProcessId(Index));
+		if (g_structPageSetting.bViewRealTime)
+			wsprintfW(lpText, L"%lu", PerfDataGetProcessId(Index));
+		else
+			wsprintfW(lpText, L"%lu", FileDataGetProcessId(Index));
+		
 
 	if (ColumnDataHints[ColumnIndex] == COLUMN_CPUUSAGE)
-		wsprintfW(lpText, L"%02lu %%", PerfDataGetCPUUsage(Index));
+		if (g_structPageSetting.bViewRealTime)
+			wsprintfW(lpText, L"%02lu %%", PerfDataGetCPUUsage(Index));
+		else
+			wsprintfW(lpText, L"%02lu %%", FileDataGetCPUUsage(Index));
+		
 
 	if (ColumnDataHints[ColumnIndex] == COLUMN_MEMORY)
-		wsprintfW(lpText, L"%lu Kb", PerfDataGetWorkingSetSizeBytes(Index)/1024);
+		if (g_structPageSetting.bViewRealTime)
+			wsprintfW(lpText, L"%lu Kb", PerfDataGetWorkingSetSizeBytes(Index)/1024);
+		else
+			wsprintfW(lpText, L"%lu Kb", FileDataGetWorkingSetSizeBytes(Index)/1024);
+		
 
 	if (ColumnDataHints[ColumnIndex] == COLUMN_READ_OPERATION)
-		wsprintfW(lpText, L"%I64u Op/s", PerformanceDataGetReadOperationsPerSecond(Index));
+		if (g_structPageSetting.bViewRealTime)
+			wsprintfW(lpText, L"%I64u Op/s", PerfDataGetReadOperationsPerSecond(Index));
+		else
+			wsprintfW(lpText, L"%I64u Op/s", FileDataGetReadOperationsPerSecond(Index));
+		
 
 	if (ColumnDataHints[ColumnIndex] == COLUMN_WRITE_OPERATION)
-		wsprintfW(lpText, L"%I64u Op/s", PerformanceDataGetWriteOperationsPerSecond(Index));
+		if (g_structPageSetting.bViewRealTime)
+			wsprintfW(lpText, L"%I64u Op/s", PerfDataGetWriteOperationsPerSecond(Index));
+		else
+			wsprintfW(lpText, L"%I64u Op/s", FileDataGetWriteOperationsPerSecond(Index));
+		
 
 	if (ColumnDataHints[ColumnIndex] == COLUMN_OTHER_OPERATION)
-		wsprintfW(lpText, L"%I64u Op/s", PerformanceDataGetOtherOperationsPerSecond(Index));
+		if (g_structPageSetting.bViewRealTime)
+			wsprintfW(lpText, L"%I64u Op/s", PerfDataGetOtherOperationsPerSecond(Index));
+		else
+			wsprintfW(lpText, L"%I64u Op/s", FileDataGetOtherOperationsPerSecond(Index));
+		
 
 	if (ColumnDataHints[ColumnIndex] == COLUMN_READ_TRANSFER)
-		wsprintfW(lpText, L"%I64u Bytes/s", PerformanceDataGetReadTransferPerSecond(Index));
+		if (g_structPageSetting.bViewRealTime)
+			wsprintfW(lpText, L"%I64u Bytes/s", PerfDataGetReadTransferPerSecond(Index));
+		else
+			wsprintfW(lpText, L"%I64u Bytes/s", FileDataGetReadTransferPerSecond(Index));
+		
 
 	if (ColumnDataHints[ColumnIndex] == COLUMN_WRITE_TRANSFER)
-		wsprintfW(lpText, L"%I64u Bytes/s", PerformanceDataGetWriteTransferPerSecond(Index));
+		if (g_structPageSetting.bViewRealTime)
+			wsprintfW(lpText, L"%I64u Bytes/s", PerfDataGetWriteTransferPerSecond(Index));
+		else
+			wsprintfW(lpText, L"%I64u Bytes/s", FileDataGetWriteTransferPerSecond(Index));
+		
 
 	if (ColumnDataHints[ColumnIndex] == COLUMN_OTHER_TRANSFER)
-		wsprintfW(lpText, L"%I64u Bytes/s", PerformanceDataGetOtherTransferPerSecond(Index));
-
+		if (g_structPageSetting.bViewRealTime)
+			wsprintfW(lpText, L"%I64u Bytes/s", PerfDataGetOtherTransferPerSecond(Index));
+		else
+			wsprintfW(lpText, L"%I64u Bytes/s", FileDataGetOtherTransferPerSecond(Index));
+		
 	return FALSE;
 }
 
@@ -139,12 +191,12 @@ void UpdateProcess(CListCtrl * objListCtlProcess)
 			HeapFree(GetProcessHeap(), 0, pData);
 		}
 	}
-
+	ULONG ulProcessCount = ConfigGetViewStyle()? PerfDataGetProcessCount() : FileDataGetProcessCount();
 	/* Check for difference in listview process and performance process counts */
-	if (objListCtlProcess->GetItemCount() != PerfDataGetProcessCount())
+	if (objListCtlProcess->GetItemCount() != ulProcessCount)
 	{
 		/* Add new processes by checking against the current items */
-		for (l = 0; l < PerfDataGetProcessCount(); l++)
+		for (l = 0; l < ulProcessCount; l++)
 		{
 			AddListItem(l, objListCtlProcess);
 		}
@@ -172,7 +224,16 @@ void AddListItem(ULONG Index, CListCtrl * objListCtlProcess)
 	BOOL						bAlreadyInList = FALSE;
 	ULONG						pid;
 
-	pid = PerfDataGetProcessId(Index);
+	if (g_structPageSetting.bViewRealTime)
+		pid = PerfDataGetProcessId(Index);
+	else
+		pid = FileDataGetProcessId(Index);
+
+	if (pid == 0)
+	{
+		int i = 0;
+		i++;
+	}
 
 	/* Check to see if it's already in our list */
 	for (i=0; i<objListCtlProcess->GetItemCount(); i++)
@@ -218,11 +279,30 @@ int CALLBACK TaskMgrCompareProc(LPARAM lParam1, LPARAM lParam2,
 
 	PPERFDATA  pdata1 = NULL;
 	PPERFDATA  pdata2 = NULL;
-	if (!PerfDataGet(PerfDataGetProcessIndex(item1->ProcessId), &pdata1))
-		return bRet;
+	
+	if (g_structPageSetting.bViewRealTime)
+	{
+		if (!PerfDataGet(PerfDataGetProcessIndex(item1->ProcessId), &pdata1))
+			return bRet;
+	}
+	else
+	{
+		if (!FileDataGet(FileDataGetProcessIndex(item1->ProcessId), &pdata1))
+			return bRet;
+	}
 
-	if (!PerfDataGet(PerfDataGetProcessIndex(item2->ProcessId), &pdata2))
-		return bRet;
+	if (g_structPageSetting.bViewRealTime)
+	{
+		if (!PerfDataGet(PerfDataGetProcessIndex(item2->ProcessId), &pdata2))
+			return bRet;
+	}
+	else
+	{
+		if (!FileDataGet(FileDataGetProcessIndex(item2->ProcessId), &pdata2))
+			return bRet;
+	}
+
+	
 
 	switch (ColumnDataHints[g_structPageSetting.iSortColumn])
 	{

@@ -21,13 +21,16 @@ typedef struct
 
 typedef struct _PROCESS_PAGE_SETTING
 {
-	int		iSortColumn;
-	BOOL	bSortAscending;
+	int		iSortColumn;		// sort by column
+	BOOL	bSortAscending;		// sort type
+	BOOL	bViewRealTime;		// view realtime or view data from file 
 } PROCESS_PAGE_SETTING, *PPROCESS_PAGE_SETTING;
 
 // setting funtion
-void SetSortColumn(int iColumn);
-void ToggleSort();
+void ConfigSetSortColumn(int iColumn);
+void ConfigToggleSort();
+void ConfigSetViewStyle(BOOL bViewRealtime);
+BOOL ConfigGetViewStyle();
 
 // data funtion
 void InitListProcessPage(CListCtrl * objListCtlProcess);

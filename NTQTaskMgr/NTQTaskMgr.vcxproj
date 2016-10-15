@@ -102,6 +102,7 @@
     <Text Include="ReadMe.txt" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="FileDataStruct.h" />
     <ClInclude Include="ListProcessPage.h" />
     <ClInclude Include="NTQTaskMgr.h" />
     <ClInclude Include="NTQTaskMgrDlg.h" />
@@ -112,6 +113,7 @@
     <ClInclude Include="UndocumentStruct.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="FileDataStruct.cpp" />
     <ClCompile Include="ListProcessPage.cpp" />
     <ClCompile Include="NTQTaskMgr.cpp" />
     <ClCompile Include="NTQTaskMgrDlg.cpp" />

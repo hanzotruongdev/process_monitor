@@ -3,11 +3,16 @@
 //
 
 #include "stdafx.h"
+#include <windows.h>
+#include <Winternl.h>
+
 #include "NTQTaskMgr.h"
 #include "NTQTaskMgrDlg.h"
 #include "afxdialogex.h"
 #include "perfdata.h"
 #include "ListProcessPage.h"
+#include "UndocumentStruct.h"
+#include "FileDataStruct.h"
 
 #ifdef _DEBUG
 #define new DEBUG_NEW
@@ -61,6 +66,8 @@ void CNTQTaskMgrDlg::DoDataExchange(CDataExchange* pDX)
 	CDialogEx::DoDataExchange(pDX);
 	DDX_Control(pDX, IDC_LST_PROCESS, m_listCtlProcess);
 	DDX_Text(pDX, IDC_EDT_STATUS, m_csStatus);
+	DDX_Control(pDX, IDC_EDT_STATUS, m_edtCltStatus);
+	DDX_Control(pDX, IDOK, m_btnOk);
 }
 
 BEGIN_MESSAGE_MAP(CNTQTaskMgrDlg, CDialogEx)
@@ -71,10 +78,15 @@ BEGIN_MESSAGE_MAP(CNTQTaskMgrDlg, CDialogEx)
 	ON_NOTIFY(LVN_GETDISPINFO, IDC_LST_PROCESS, &CNTQTaskMgrDlg::OnLvnGetdispinfoLstProcess)
 	ON_NOTIFY(LVN_ITEMCHANGED, IDC_LST_PROCESS, &CNTQTaskMgrDlg::OnLvnItemchangedLstProcess)
 	ON_NOTIFY(HDN_ITEMCLICK, 0, &CNTQTaskMgrDlg::OnHdnItemclickLstProcess)
+	ON_WM_SIZE()
+	ON_WM_MENUSELECT()
+	ON_COMMAND_RANGE(ID_FILE_TAKESNAPSHOT,ID_FILE_OPEN_SNAPSHOT, MenuHandler)
 END_MESSAGE_MAP()
 
 
 // CNTQTaskMgrDlg message handlers
+#define IDM_DDD 16
+#define IDM_EEE 17
 
 BOOL CNTQTaskMgrDlg::OnInitDialog()
 {
@@ -97,6 +109,8 @@ BOOL CNTQTaskMgrDlg::OnInitDialog()
 		{
 			pSysMenu->AppendMenu(MF_SEPARATOR);
 			pSysMenu->AppendMenu(MF_STRING, IDM_ABOUTBOX, strAboutMenu);
+			pSysMenu->AppendMenu(MF_STRING, IDM_DDD, L"DDD");
+			pSysMenu->AppendMenu(MF_STRING, IDM_EEE, L"EEE");
 		}
 	}
 
@@ -113,6 +127,15 @@ BOOL CNTQTaskMgrDlg::OnInitDialog()
 	//
 	InitListProcessPage(&m_listCtlProcess);
 	SetTimer(TIMER_UPDATE_LIST_PROCESS, TIMER_UPDATE_LIST_PROCESS_INTERVAL, NULL);
+
+	// calculate control position in dialog to make dynamic dialog
+	//
+	RECT rectDlg, rectList, rectBtnOk;
+	GetClientRect(&rectDlg);
+	m_listCtlProcess.GetClientRect(&rectList);
+
+	m_listCltVerticalDelta = rectDlg.bottom - rectList.bottom;
+	m_listCltHorizontalDelta = rectDlg.right - rectList.right;
 
 	return TRUE;  // return TRUE  unless you set the focus to a control
 }
@@ -178,7 +201,9 @@ void CNTQTaskMgrDlg::UpdateDataAndUI(void)
 	m_csStatus.Format(L"Cpu usage: %02d - Count process: %d", PerfDataGetProcessorUsage(), ulCountProcess);
 	UpdateData(FALSE);
 
-	UpdateProcess(&m_listCtlProcess);
+	// if view realtime
+	if (ConfigGetViewStyle() == TRUE)	
+		UpdateProcess(&m_listCtlProcess);
 }
 
 
@@ -237,7 +262,136 @@ void CNTQTaskMgrDlg::OnHdnItemclickLstProcess(NMHDR *pNMHDR, LRESULT *pResult)
 	// TODO: Add your control notification handler code here
 	*pResult = 0;
 
-	SetSortColumn(phdr->iItem);
+	ConfigSetSortColumn(phdr->iItem);
+	UpdateProcess(&m_listCtlProcess);
 }
 
 
+
+
+void CNTQTaskMgrDlg::OnSize(UINT nType, int cx, int cy)
+{
+	RECT rectDlg, rectList, rectBtnOk, rectEdtStatus;
+
+	if (m_listCtlProcess.m_hWnd != nullptr )
+	{
+		GetClientRect(&rectDlg);
+		m_edtCltStatus.GetClientRect(&rectEdtStatus);
+		m_btnOk.GetClientRect(&rectBtnOk);
+
+		m_edtCltStatus.SetWindowPos(NULL, 5, rectDlg.bottom - rectEdtStatus.bottom - 5, 
+			rectEdtStatus.right, rectEdtStatus.bottom,0);
+
+		m_listCtlProcess.SetWindowPos(NULL, 0, 0, 
+			rectDlg.right - m_listCltHorizontalDelta, 
+			rectDlg.bottom - m_listCltVerticalDelta, 0);
+
+		m_btnOk.SetWindowPos(NULL, rectDlg.right - rectBtnOk.right - 5, rectDlg.bottom - rectBtnOk.bottom - 5,
+			rectBtnOk.right, rectBtnOk.bottom, 0);
+	}
+
+
+	CDialogEx::OnSize(nType, cx, cy);
+}
+
+
+void CNTQTaskMgrDlg::OnMenuSelect(UINT nItemID, UINT nFlags, HMENU hSysMenu)
+{
+	CDialogEx::OnMenuSelect(nItemID, nFlags, hSysMenu);
+
+	// TODO: Add your message handler code here
+	if (! (MF_MOUSESELECT & nFlags))
+		return;
+
+}
+
+void CNTQTaskMgrDlg::MenuHandler(UINT i)
+{
+	switch (i)
+	{
+	case ID_FILE_TAKESNAPSHOT:
+		ExportPerfToFile();
+		break;
+
+	case ID_FILE_OPEN_SNAPSHOT:
+		OpenFile();
+		break;
+
+	case ID_FILE_EXIT:
+		this->PostMessage(WM_QUIT, 0, 0);
+		break;
+
+	default:
+		break;
+	}
+}
+
+// 
+// menu ID_FILE_TAKE_SNAPSHOT handler
+//
+void CNTQTaskMgrDlg::ExportPerfToFile()
+{
+	CString strPathname;
+	WCHAR szFilters[]= L"NTQ TaskMgr File (*.NTF)|*.NTF|All Files (*.*)|*.*||";
+	PVOID buffer = NULL;
+
+	// take snapshot to buffer
+	if (!PerfDataTakeSnapshot(&buffer))
+		return;
+
+	// use CFileDialog to get export file path
+	//
+	CFileDialog fileDlg(FALSE, L"ntf", L"*.ntf",
+		OFN_PATHMUSTEXIST| OFN_OVERWRITEPROMPT, szFilters, this);
+
+	if( fileDlg.DoModal ()!=IDOK )
+		goto RET;
+
+	strPathname = fileDlg.GetPathName();
+	
+	// write snapshot buffer to file
+	//
+	FileTakeSnapshot(strPathname.GetBuffer(), buffer);
+
+RET:
+	// cleanup beffor return
+	if (buffer)
+	{
+		HeapFree(GetProcessHeap(), 0, buffer);
+	}
+}
+
+BOOL CNTQTaskMgrDlg::OpenFile()
+{
+	BOOL bRet = FALSE;
+	CString strPathname;
+	WCHAR szFilters[]= L"NTQ TaskMgr File (*.NTF)|*.NTF|All Files (*.*)|*.*||";
+	PVOID buffer = NULL;
+	// use CFileDialog to get export file path
+	//
+	CFileDialog fileDlg(TRUE, L"ntf", L"*.ntf",
+		OFN_FILEMUSTEXIST| OFN_HIDEREADONLY, szFilters, this);
+
+	if( fileDlg.DoModal ()!=IDOK )
+		goto RET;
+
+	strPathname = fileDlg.GetPathName();
+
+	if (FileReadFileToBuffer(strPathname.GetBuffer(), &buffer))
+	{
+		// change config
+		FileDataInitialize(buffer);
+		ConfigSetViewStyle(FALSE);
+		m_listCtlProcess.DeleteAllItems();
+		UpdateProcess(&m_listCtlProcess);
+
+		bRet = TRUE;
+	}
+	else
+	{
+		MessageBox(L"Read file error!");
+	}
+	
+RET:
+	return bRet;
+}

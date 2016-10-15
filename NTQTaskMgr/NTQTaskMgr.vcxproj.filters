@@ -13,6 +13,15 @@
       <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
       <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
     </Filter>
+    <Filter Include="File">
+      <UniqueIdentifier>{c6550e01-bbbd-4352-b05e-66dbe76d302a}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="File\Header Files">
+      <UniqueIdentifier>{6e65f9b9-39e2-4faf-97d2-69e1c2d16d70}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="File\Source Files">
+      <UniqueIdentifier>{81945231-28c8-467a-b85b-ecc0c716ea8c}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <Text Include="ReadMe.txt" />
@@ -42,6 +51,9 @@
     <ClInclude Include="ListProcessPage.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="FileDataStruct.h">
+      <Filter>File\Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="NTQTaskMgr.cpp">
@@ -58,6 +70,9 @@
     </ClCompile>
     <ClCompile Include="ListProcessPage.cpp">
       <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="FileDataStruct.cpp">
+      <Filter>File\Source Files</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

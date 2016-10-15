@@ -27,6 +27,7 @@
 #include <Winternl.h>
 #include "UndocumentStruct.h"
 #include "perfdata.h"
+#include "FileDataStruct.h"
 
 #pragma comment(lib,"ntdll.lib")
 
@@ -1016,7 +1017,7 @@ BOOL PerfDataGet(ULONG Index, PPERFDATA *lppData)
     return bSuccessful;
 }
 
-ULONGLONG PerformanceDataGetReadOperationsPerSecond(ULONG Index)
+ULONGLONG PerfDataGetReadOperationsPerSecond(ULONG Index)
 {
 	ULONGLONG  ulRetValue;
 
@@ -1032,7 +1033,7 @@ ULONGLONG PerformanceDataGetReadOperationsPerSecond(ULONG Index)
 	return ulRetValue;
 }
 
-ULONGLONG PerformanceDataGetWriteOperationsPerSecond(ULONG Index)
+ULONGLONG PerfDataGetWriteOperationsPerSecond(ULONG Index)
 {
 	ULONGLONG  ulRetValue;
 
@@ -1048,7 +1049,7 @@ ULONGLONG PerformanceDataGetWriteOperationsPerSecond(ULONG Index)
 	return ulRetValue;
 }
 
-ULONGLONG PerformanceDataGetOtherOperationsPerSecond(ULONG Index)
+ULONGLONG PerfDataGetOtherOperationsPerSecond(ULONG Index)
 {
 	ULONGLONG  ulRetValue;
 
@@ -1064,7 +1065,7 @@ ULONGLONG PerformanceDataGetOtherOperationsPerSecond(ULONG Index)
 	return ulRetValue;
 }
 
-ULONGLONG PerformanceDataGetReadTransferPerSecond(ULONG Index)
+ULONGLONG PerfDataGetReadTransferPerSecond(ULONG Index)
 {
 	ULONGLONG  ulRetValue;
 
@@ -1080,7 +1081,7 @@ ULONGLONG PerformanceDataGetReadTransferPerSecond(ULONG Index)
 	return ulRetValue;
 }
 
-ULONGLONG PerformanceDataGetWriteTransferPerSecond(ULONG Index)
+ULONGLONG PerfDataGetWriteTransferPerSecond(ULONG Index)
 {
 	ULONGLONG  ulRetValue;
 
@@ -1096,7 +1097,7 @@ ULONGLONG PerformanceDataGetWriteTransferPerSecond(ULONG Index)
 	return ulRetValue;
 }
 
-ULONGLONG PerformanceDataGetOtherTransferPerSecond(ULONG Index)
+ULONGLONG PerfDataGetOtherTransferPerSecond(ULONG Index)
 {
 	ULONGLONG  ulRetValue;
 
@@ -1110,5 +1111,50 @@ ULONGLONG PerformanceDataGetOtherTransferPerSecond(ULONG Index)
 	LeaveCriticalSection(&PerfDataCriticalSection);
 
 	return ulRetValue;
+}
+
+BOOL PerfDataTakeSnapshot(PVOID * pbuffer)
+{
+	BOOL bRet = FALSE;
+	*pbuffer = NULL;
+	PNTF_HEADER pHeader = NULL;
+
+	EnterCriticalSection(&PerfDataCriticalSection);
+
+	pHeader = (PNTF_HEADER) HeapAlloc(GetProcessHeap(), 0, sizeof(NTF_HEADER) + ProcessCount * sizeof(PERFDATA));
+	if (NULL == pHeader)
+	{
+		goto RET;
+	}
+	
+	// copy data to our snapshot
+	pHeader->wSignature = 'NTF';
+	pHeader->ProcessCount = ProcessCount;
+	pHeader->dbIdleTime = dbIdleTime;		
+	pHeader->dbKernelTime = dbKernelTime;
+	pHeader->dbSystemTime = dbSystemTime;
+	memcpy(&pHeader->SystemPerfInfo, &SystemPerfInfo, sizeof(SYSTEM_PERFORMANCE_INFORMATION_UNDOC));
+	memcpy(&pHeader->SystemBasicInfo, &SystemBasicInfo, sizeof(SYSTEM_BASIC_INFORMATION_UNDOC));
+	memcpy(&pHeader->SystemCacheInfo, &SystemCacheInfo, sizeof(SYSTEM_FILECACHE_INFORMATION));
+	memcpy(&pHeader->SystemHandleInfo, &SystemHandleInfo, sizeof(SYSTEM_HANDLE_INFORMATION));
+	pHeader->SystemUserSid = SystemUserSid;
+
+	PPERFDATA pbody = (PPERFDATA) pHeader->pData;
+
+	if (!pHeader)
+		goto RET;
+
+	memcpy(pbody, pPerfData, ProcessCount * sizeof(PERFDATA));
+	bRet = TRUE;
+
+RET:
+	LeaveCriticalSection(&PerfDataCriticalSection);
+
+	if (FALSE == bRet)
+		HeapFree(GetProcessHeap(), 0, pHeader);
+	else 
+		*pbuffer = pHeader;
+
+	return bRet;
 }
 

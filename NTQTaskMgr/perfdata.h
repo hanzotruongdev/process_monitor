@@ -107,11 +107,11 @@ ULONG	PerfDataGetSystemHandleCount(void);
 
 ULONG	PerfDataGetTotalThreadCount(void);
 
-ULONGLONG PerformanceDataGetReadOperationsPerSecond(ULONG Index);
-ULONGLONG PerformanceDataGetWriteOperationsPerSecond(ULONG Index);
-ULONGLONG PerformanceDataGetOtherOperationsPerSecond(ULONG Index);
-ULONGLONG PerformanceDataGetReadTransferPerSecond(ULONG Index);
-ULONGLONG PerformanceDataGetWriteTransferPerSecond(ULONG Index);
-ULONGLONG PerformanceDataGetOtherTransferPerSecond(ULONG Index);
+ULONGLONG PerfDataGetReadOperationsPerSecond(ULONG Index);
+ULONGLONG PerfDataGetWriteOperationsPerSecond(ULONG Index);
+ULONGLONG PerfDataGetOtherOperationsPerSecond(ULONG Index);
+ULONGLONG PerfDataGetReadTransferPerSecond(ULONG Index);
+ULONGLONG PerfDataGetWriteTransferPerSecond(ULONG Index);
+ULONGLONG PerfDataGetOtherTransferPerSecond(ULONG Index);
 
-
+BOOL PerfDataTakeSnapshot(PVOID * pbuffer);			// take snapshot of current stage to buffer
