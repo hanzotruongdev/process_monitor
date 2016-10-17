@@ -69,6 +69,7 @@ ULONG   PerfDataGetProcessIndex(ULONG pid);
 ULONG	PerfDataGetProcessCount(void);
 ULONG	PerfDataGetProcessorUsage(void);
 ULONG	PerfDataGetProcessorSystemUsage(void);
+ULONG	PerfDataGetMemoryUsage(void);
 
 BOOL	PerfDataGetImageName(ULONG Index, LPTSTR lpImageName, int nMaxCount);
 ULONG	PerfDataGetProcessId(ULONG Index);

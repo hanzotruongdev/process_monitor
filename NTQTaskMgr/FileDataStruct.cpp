@@ -17,9 +17,11 @@ BOOL FileDataInitialize(PVOID pbuffer)
 	if (!pbuffer)
 		return FALSE;
 
+	FileDataUninitialize();
+
 	g_pFileData = pbuffer;
 	g_pHeader = (PNTF_HEADER) pbuffer;
-	g_pData = (PPERFDATA) g_pHeader->pData;
+	g_pData = (PPERFDATA) &g_pHeader->pData[0];
 
     return TRUE;
 }
@@ -27,7 +29,10 @@ BOOL FileDataInitialize(PVOID pbuffer)
 void FileDataUninitialize(void)
 {
 	if (g_pFileData)
+	{
 		HeapFree(GetProcessHeap(), 0, g_pFileData);
+		g_pFileData = NULL;
+	}
 }
 
 
@@ -58,7 +63,7 @@ ULONG FileDataGetProcessCount(void)
 
 ULONG FileDataGetProcessorUsage(void)
 {
-    return (ULONG)g_pHeader->dbIdleTime;
+    return (ULONG)(g_pHeader->dbIdleTime + 0.5);
 }
 
 ULONG FileDataGetProcessorSystemUsage(void)
@@ -620,8 +625,7 @@ BOOL FileReadFileToBuffer(WCHAR * pszFilePath, PVOID * buffer)
 	if (!ReadFile(hFile, *buffer, dwSizeLow, &dwByteRead, NULL))
 		goto RET;
 
-	if (dwByteRead < dwSizeLow)
-		goto RET;
+	assert(dwByteRead == dwSizeLow);
 
 	bRet = TRUE;
 
@@ -633,4 +637,22 @@ RET:
 		HeapFree(GetProcessHeap(), 0, *buffer);
 
 	return bRet;
+}
+
+BOOL FileCheckValidSignature(PVOID pbuffer)
+{
+	// validate input
+	if (!pbuffer)
+		return FALSE;
+
+	PNTF_HEADER pheader = (PNTF_HEADER) pbuffer;
+
+	return (pheader->wSignature == NTF_SIGNATURE);
+}
+
+ULONG FileDataGetMemoryUsage(void)
+{
+	double douMemoryAvailable = 0;
+	douMemoryAvailable = 100.0 * FileDataGetPhysicalMemoryAvailableK() / FileDataGetPhysicalMemoryTotalK();
+	return (ULONG) (douMemoryAvailable + 0.5);
 }

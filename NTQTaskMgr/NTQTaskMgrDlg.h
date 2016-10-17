@@ -34,7 +34,7 @@ protected:
 	afx_msg HCURSOR OnQueryDragIcon();
 	DECLARE_MESSAGE_MAP()
 public:
-	CListCtrl m_listCtlProcess;
+	void Cleanup();
 	void UpdateDataAndUI(void);
 	afx_msg void OnTimer(UINT_PTR nIDEvent);
 	CString m_csStatus;
@@ -52,4 +52,8 @@ public:
 	afx_msg void OnMenuSelect(UINT nItemID, UINT nFlags, HMENU hSysMenu);
 	void ExportPerfToFile();
 	BOOL OpenFile();
+	void SwitchToRealTime(void);
+
+	CListCtrl m_listCtlProcess;
+	afx_msg void OnDropFiles(HDROP hDropInfo);
 };

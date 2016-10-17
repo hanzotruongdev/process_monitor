@@ -352,7 +352,7 @@ void PerfDataRefresh(void)
             double    CurTime = Li2Double(pSPI->KernelTime) + Li2Double(pSPI->UserTime);
             double    OldTime = Li2Double(pPDOld->KernelTime) + Li2Double(pPDOld->UserTime);
             double    CpuTime = (CurTime - OldTime) / dbSystemTime;
-            CpuTime = CpuTime * 100.0 / (double)SystemBasicInfo.NumberOfProcessors; /* + 0.5; */
+            CpuTime = CpuTime * 100.0 / (double)SystemBasicInfo.NumberOfProcessors + 0.5; 
             pPerfData[Idx].CPUUsage = (ULONG)CpuTime;
         }
         pPerfData[Idx].CPUTime.QuadPart = pSPI->UserTime.QuadPart + pSPI->KernelTime.QuadPart;
@@ -485,7 +485,8 @@ ULONG PerfDataGetProcessCount(void)
 
 ULONG PerfDataGetProcessorUsage(void)
 {
-    return (ULONG)dbIdleTime;
+	// rount to bounty
+    return (ULONG)(dbIdleTime + 0.5);
 }
 
 ULONG PerfDataGetProcessorSystemUsage(void)
@@ -1128,7 +1129,7 @@ BOOL PerfDataTakeSnapshot(PVOID * pbuffer)
 	}
 	
 	// copy data to our snapshot
-	pHeader->wSignature = 'NTF';
+	pHeader->wSignature = NTF_SIGNATURE;
 	pHeader->ProcessCount = ProcessCount;
 	pHeader->dbIdleTime = dbIdleTime;		
 	pHeader->dbKernelTime = dbKernelTime;
@@ -1156,5 +1157,12 @@ RET:
 		*pbuffer = pHeader;
 
 	return bRet;
+}
+
+ULONG PerfDataGetMemoryUsage(void)
+{
+	double douRamUsage = 0;
+	douRamUsage = 100.0 * PerfDataGetPhysicalMemoryAvailableK() / PerfDataGetPhysicalMemoryTotalK() ;
+	return (ULONG) (douRamUsage + 0.5);
 }
 

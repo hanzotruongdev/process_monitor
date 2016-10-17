@@ -80,7 +80,8 @@ BEGIN_MESSAGE_MAP(CNTQTaskMgrDlg, CDialogEx)
 	ON_NOTIFY(HDN_ITEMCLICK, 0, &CNTQTaskMgrDlg::OnHdnItemclickLstProcess)
 	ON_WM_SIZE()
 	ON_WM_MENUSELECT()
-	ON_COMMAND_RANGE(ID_FILE_TAKESNAPSHOT,ID_FILE_OPEN_SNAPSHOT, MenuHandler)
+	ON_COMMAND_RANGE(ID_FILE_TAKESNAPSHOT,ID_FILE_REALTIME, MenuHandler)
+	ON_WM_DROPFILES()
 END_MESSAGE_MAP()
 
 
@@ -195,15 +196,28 @@ void CNTQTaskMgrDlg::UpdateDataAndUI(void)
 	CString csTemp;
 	ULONG ulIndex = 0;
 	PPERFDATA pdata = NULL;
-	ULONG ulCountProcess = PerfDataGetProcessCount();
+	ULONG ulCountProcess, ulProcesorsUsage, ulRamUsage;
+	if (ConfigGetViewStyle() == TRUE)
+	{ 
+		ulCountProcess = PerfDataGetProcessCount();
+		ulProcesorsUsage = PerfDataGetProcessorUsage();
+		ulRamUsage = PerfDataGetMemoryUsage();
+	}
+	else
+	{
+		ulCountProcess = FileDataGetProcessCount();
+		ulProcesorsUsage = FileDataGetProcessorUsage();
+		ulRamUsage = FileDataGetMemoryUsage();
+	}
+
 
 	// update status
-	m_csStatus.Format(L"Cpu usage: %02d - Count process: %d", PerfDataGetProcessorUsage(), ulCountProcess);
+	m_csStatus.Format(L"Cpu usage: %02d - Memory: %02d - Count process: %d", ulProcesorsUsage, ulRamUsage, ulCountProcess);
 	UpdateData(FALSE);
 
 	// if view realtime
-	if (ConfigGetViewStyle() == TRUE)	
-		UpdateProcess(&m_listCtlProcess);
+	if (ConfigIsRuning() && ConfigGetViewStyle() == TRUE)	
+		PageUpdateProcess(&m_listCtlProcess);
 }
 
 
@@ -233,7 +247,7 @@ void CNTQTaskMgrDlg::OnLvnGetdispinfoLstProcess(NMHDR *pNMHDR, LRESULT *pResult)
 	*pResult = 0;
 
 	LPNMHEADER     pnmhdr;
-	ULONG          Index;
+	ULONG          Index = 9999;
 	ULONG          ColumnIndex;
 	LPPROCESS_PAGE_LIST_ITEM  pData;
 
@@ -241,10 +255,10 @@ void CNTQTaskMgrDlg::OnLvnGetdispinfoLstProcess(NMHDR *pNMHDR, LRESULT *pResult)
 		return;
 
 	pData = (LPPROCESS_PAGE_LIST_ITEM)pnmdi->item.lParam;
-	Index = PerfDataGetProcessIndex(pData->ProcessId);
+	Index = ConfigGetViewStyle()? PerfDataGetProcessIndex(pData->ProcessId): FileDataGetProcessIndex(pData->ProcessId);
 	ColumnIndex = pnmdi->item.iSubItem;
 
-	PerfDataGetText(Index, ColumnIndex, pnmdi->item.pszText, pnmdi->item.cchTextMax);
+	PageDataGetText(Index, ColumnIndex, pnmdi->item.pszText, pnmdi->item.cchTextMax);
 }
 
 
@@ -263,7 +277,7 @@ void CNTQTaskMgrDlg::OnHdnItemclickLstProcess(NMHDR *pNMHDR, LRESULT *pResult)
 	*pResult = 0;
 
 	ConfigSetSortColumn(phdr->iItem);
-	UpdateProcess(&m_listCtlProcess);
+	PageUpdateProcess(&m_listCtlProcess);
 }
 
 
@@ -272,6 +286,8 @@ void CNTQTaskMgrDlg::OnHdnItemclickLstProcess(NMHDR *pNMHDR, LRESULT *pResult)
 void CNTQTaskMgrDlg::OnSize(UINT nType, int cx, int cy)
 {
 	RECT rectDlg, rectList, rectBtnOk, rectEdtStatus;
+
+	CDialogEx::OnSize(nType, cx, cy);
 
 	if (m_listCtlProcess.m_hWnd != nullptr )
 	{
@@ -291,7 +307,7 @@ void CNTQTaskMgrDlg::OnSize(UINT nType, int cx, int cy)
 	}
 
 
-	CDialogEx::OnSize(nType, cx, cy);
+	
 }
 
 
@@ -309,6 +325,10 @@ void CNTQTaskMgrDlg::MenuHandler(UINT i)
 {
 	switch (i)
 	{
+	case ID_FILE_REALTIME:
+		SwitchToRealTime();
+		break;
+
 	case ID_FILE_TAKESNAPSHOT:
 		ExportPerfToFile();
 		break;
@@ -319,6 +339,19 @@ void CNTQTaskMgrDlg::MenuHandler(UINT i)
 
 	case ID_FILE_EXIT:
 		this->PostMessage(WM_QUIT, 0, 0);
+		break;
+
+	case ID_HELP_README:
+		{
+			MessageBox(L"No more to read...");
+		}
+		break;
+
+	case ID_HELP_ABOUT:
+		{
+			CAboutDlg dlgAbout;
+			dlgAbout.DoModal();
+		}
 		break;
 
 	default:
@@ -367,6 +400,7 @@ BOOL CNTQTaskMgrDlg::OpenFile()
 	CString strPathname;
 	WCHAR szFilters[]= L"NTQ TaskMgr File (*.NTF)|*.NTF|All Files (*.*)|*.*||";
 	PVOID buffer = NULL;
+
 	// use CFileDialog to get export file path
 	//
 	CFileDialog fileDlg(TRUE, L"ntf", L"*.ntf",
@@ -377,21 +411,90 @@ BOOL CNTQTaskMgrDlg::OpenFile()
 
 	strPathname = fileDlg.GetPathName();
 
-	if (FileReadFileToBuffer(strPathname.GetBuffer(), &buffer))
-	{
-		// change config
-		FileDataInitialize(buffer);
-		ConfigSetViewStyle(FALSE);
-		m_listCtlProcess.DeleteAllItems();
-		UpdateProcess(&m_listCtlProcess);
-
-		bRet = TRUE;
-	}
-	else
+	// read file to buffer
+	if (FALSE == FileReadFileToBuffer(strPathname.GetBuffer(), &buffer) )
 	{
 		MessageBox(L"Read file error!");
+		goto RET;
 	}
+
+	if (FALSE == FileCheckValidSignature(buffer))
+	{
+		MessageBox(L"File is corupted!");
+		goto RET;
+	}
+
+	// change windows title
+	this->SetWindowText(CString(L"NTQTaskMgr | ") + strPathname);
+
+	// change config
+	FileDataInitialize(buffer);
+	ConfigSetViewStyle(FALSE);
+	m_listCtlProcess.DeleteAllItems();
+	PageUpdateProcess(&m_listCtlProcess);
+
+	bRet = TRUE;
 	
 RET:
 	return bRet;
+}
+
+void CNTQTaskMgrDlg::SwitchToRealTime(void)
+{
+	ConfigSetViewStyle(TRUE);	// switch to realtime
+	m_listCtlProcess.DeleteAllItems();
+	PageUpdateProcess(&m_listCtlProcess);
+	SetWindowText(L"NTQTaskMgr");
+
+	// clear old data
+	FileDataUninitialize();
+}
+
+void CNTQTaskMgrDlg::Cleanup()
+{
+	ConfigSetRuning(FALSE);
+	FileDataUninitialize();
+	PerfDataUninitialize();
+}
+
+
+
+
+void CNTQTaskMgrDlg::OnDropFiles(HDROP hDropInfo)
+{
+	CDialog::OnDropFiles( hDropInfo );
+	WCHAR szBuf[MAX_PATH];
+	PVOID buffer = NULL;
+
+	int nCntFiles= DragQueryFile( hDropInfo, -1, 0,0 );
+	if (nCntFiles > 1)
+	{
+		MessageBox(L"Single document. Only open 1 file!", L"Caution", MB_ICONINFORMATION);
+		return;
+	}
+
+	::DragQueryFile( hDropInfo, 0, szBuf, sizeof(szBuf));
+
+	// read file to buffer
+	if (FALSE == FileReadFileToBuffer(szBuf, &buffer))
+	{
+		MessageBox(L"Read file error!");
+		return;
+	}
+
+	if (FALSE == FileCheckValidSignature(buffer))
+	{
+		MessageBox(L"File is corupted!");
+		return;
+	}
+
+	// change windows title
+	this->SetWindowText(CString(L"NTQTaskMgr | ") + CString(szBuf));
+
+	// change config
+	FileDataInitialize(buffer);
+	ConfigSetViewStyle(FALSE);
+	m_listCtlProcess.DeleteAllItems();
+	PageUpdateProcess(&m_listCtlProcess);
+
 }

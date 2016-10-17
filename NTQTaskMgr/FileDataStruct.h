@@ -1,8 +1,10 @@
 
 
+#define NTF_SIGNATURE 'NTF'
+
 typedef struct _NTF_HEADER
 {
-	WORD											wSignature;		// signature of noitq taskmanager file 'NTF'
+	DWORD											wSignature;		// signature of noitq taskmanager file 'NTF'
 	ULONG											ProcessCount;	// count of process
 	double											dbIdleTime;		// invert of %IdleTime = %cpu time
 	double											dbKernelTime;
@@ -26,6 +28,8 @@ ULONG   FileDataGetProcessIndex(ULONG pid);
 ULONG	FileDataGetProcessCount(void);
 ULONG	FileDataGetProcessorUsage(void);
 ULONG	FileDataGetProcessorSystemUsage(void);
+ULONG	FileDataGetMemoryUsage(void);
+
 
 BOOL	FileDataGetImageName(ULONG Index, LPTSTR lpImageName, int nMaxCount);
 ULONG	FileDataGetProcessId(ULONG Index);
@@ -73,3 +77,4 @@ ULONGLONG FileDataGetOtherTransferPerSecond(ULONG Index);
 
 BOOL FileTakeSnapshot(WCHAR * pszFilePath, PVOID buffer);
 BOOL FileReadFileToBuffer(WCHAR * pszFilePath, PVOID * buffer);
+BOOL FileCheckValidSignature(PVOID pbuffer);

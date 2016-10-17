@@ -17,6 +17,7 @@ void InitListProcessPage(CListCtrl * objListCtlProcess)
 	g_structPageSetting.bSortAscending = TRUE;
 	g_structPageSetting.iSortColumn = 0;
 	g_structPageSetting.bViewRealTime = TRUE;
+	g_structPageSetting.bRuning = TRUE;
 
 	// init array column info
 	ColumnDataHints[0] = COLUMN_IMAGENAME;
@@ -68,7 +69,17 @@ BOOL ConfigGetViewStyle()
 	return g_structPageSetting.bViewRealTime;
 }
 
-BOOL PerfDataGetText(ULONG Index, ULONG ColumnIndex, LPTSTR lpText, int nMaxCount)
+void ConfigSetRuning(BOOL bRuning)
+{
+	g_structPageSetting.bRuning = bRuning;
+}
+
+BOOL ConfigIsRuning()
+{
+	return g_structPageSetting.bRuning;
+}
+
+BOOL PageDataGetText(ULONG Index, ULONG ColumnIndex, LPTSTR lpText, int nMaxCount)
 {
 	IO_COUNTERS    iocounters;
 	LARGE_INTEGER  time;
@@ -168,7 +179,7 @@ BOOL ProcessRunning(ULONG ProcessId)
 }
 
 
-void UpdateProcess(CListCtrl * objListCtlProcess)
+void PageUpdateProcess(CListCtrl * objListCtlProcess)
 {
 	int i;
 	ULONG l;
@@ -177,7 +188,7 @@ void UpdateProcess(CListCtrl * objListCtlProcess)
 
 	objListCtlProcess->SendMessage( WM_SETREDRAW, FALSE, 0);
 
-	/* Remove old processes */
+	/* Remove processes was dead*/
 	for (i = 0; i < objListCtlProcess->GetItemCount(); i++)
 	{
 		memset(&item, 0, sizeof (LV_ITEM));
@@ -191,14 +202,16 @@ void UpdateProcess(CListCtrl * objListCtlProcess)
 			HeapFree(GetProcessHeap(), 0, pData);
 		}
 	}
+
 	ULONG ulProcessCount = ConfigGetViewStyle()? PerfDataGetProcessCount() : FileDataGetProcessCount();
+
 	/* Check for difference in listview process and performance process counts */
 	if (objListCtlProcess->GetItemCount() != ulProcessCount)
 	{
 		/* Add new processes by checking against the current items */
 		for (l = 0; l < ulProcessCount; l++)
 		{
-			AddListItem(l, objListCtlProcess);
+			PageAddListItem(l, objListCtlProcess);
 		}
 	}
 
@@ -216,7 +229,7 @@ void UpdateProcess(CListCtrl * objListCtlProcess)
 
 
 
-void AddListItem(ULONG Index, CListCtrl * objListCtlProcess)
+void PageAddListItem(ULONG Index, CListCtrl * objListCtlProcess)
 {
 	LPPROCESS_PAGE_LIST_ITEM	pData;
 	int							i;

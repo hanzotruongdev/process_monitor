@@ -77,11 +77,13 @@ BOOL CNTQTaskMgrApp::InitInstance()
 	{
 		// TODO: Place code here to handle when the dialog is
 		//  dismissed with OK
+		dlg.Cleanup();
 	}
 	else if (nResponse == IDCANCEL)
 	{
 		// TODO: Place code here to handle when the dialog is
 		//  dismissed with Cancel
+		dlg.Cleanup();
 	}
 	else if (nResponse == -1)
 	{
