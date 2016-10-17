@@ -72,6 +72,7 @@ BOOL CNTQTaskMgrApp::InitInstance()
 
 	CNTQTaskMgrDlg dlg;
 	m_pMainWnd = &dlg;
+	dlg.SetApp(this);
 	INT_PTR nResponse = dlg.DoModal();
 	if (nResponse == IDOK)
 	{

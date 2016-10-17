@@ -34,6 +34,7 @@ protected:
 	afx_msg HCURSOR OnQueryDragIcon();
 	DECLARE_MESSAGE_MAP()
 public:
+	void SetApp(CNTQTaskMgrApp * objApp);
 	void Cleanup();
 	void UpdateDataAndUI(void);
 	afx_msg void OnTimer(UINT_PTR nIDEvent);
@@ -43,6 +44,7 @@ public:
 	afx_msg void OnHdnItemclickLstProcess(NMHDR *pNMHDR, LRESULT *pResult);
 	afx_msg void OnSize(UINT nType, int cx, int cy);
 	void MenuHandler(UINT i);
+	afx_msg void OnDropFiles(HDROP hDropInfo);
 
 	int m_listCltVerticalDelta;
 	int m_listCltHorizontalDelta;
@@ -51,9 +53,9 @@ public:
 	CButton m_btnOk;
 	afx_msg void OnMenuSelect(UINT nItemID, UINT nFlags, HMENU hSysMenu);
 	void ExportPerfToFile();
-	BOOL OpenFile();
+	BOOL OpenFile(WCHAR * pszFileName = NULL);
 	void SwitchToRealTime(void);
 
+	CNTQTaskMgrApp * m_objApp;
 	CListCtrl m_listCtlProcess;
-	afx_msg void OnDropFiles(HDROP hDropInfo);
 };

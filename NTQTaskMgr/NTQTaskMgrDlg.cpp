@@ -138,6 +138,17 @@ BOOL CNTQTaskMgrDlg::OnInitDialog()
 	m_listCltVerticalDelta = rectDlg.bottom - rectList.bottom;
 	m_listCltHorizontalDelta = rectDlg.right - rectList.right;
 
+	// parse commandline
+	CCommandLineInfo objCommand;
+	CString csFilePath;
+
+	m_objApp->ParseCommandLine(objCommand);
+
+	if (objCommand.m_nShellCommand == CCommandLineInfo::FileOpen)
+	{
+		OpenFile(objCommand.m_strFileName.GetBuffer());
+	}
+
 	return TRUE;  // return TRUE  unless you set the focus to a control
 }
 
@@ -228,7 +239,11 @@ void CNTQTaskMgrDlg::OnTimer(UINT_PTR nIDEvent)
 	{
 	case TIMER_UPDATE_LIST_PROCESS:
 		{
-			PerfDataRefresh();
+			if (TRUE == ConfigGetViewStyle())
+			{
+				PerfDataRefresh();
+			}
+
 			UpdateDataAndUI();
 		}
 		break;
@@ -394,22 +409,29 @@ RET:
 	}
 }
 
-BOOL CNTQTaskMgrDlg::OpenFile()
+BOOL CNTQTaskMgrDlg::OpenFile(WCHAR * pszFile)
 {
 	BOOL bRet = FALSE;
 	CString strPathname;
-	WCHAR szFilters[]= L"NTQ TaskMgr File (*.NTF)|*.NTF|All Files (*.*)|*.*||";
 	PVOID buffer = NULL;
 
-	// use CFileDialog to get export file path
-	//
-	CFileDialog fileDlg(TRUE, L"ntf", L"*.ntf",
-		OFN_FILEMUSTEXIST| OFN_HIDEREADONLY, szFilters, this);
+	if (pszFile == NULL)
+	{
+		// use CFileDialog to get export file path
+		//
+		WCHAR szFilters[]= L"NTQ TaskMgr File (*.NTF)|*.NTF|All Files (*.*)|*.*||";
+		CFileDialog fileDlg(TRUE, L"ntf", L"*.ntf",
+			OFN_FILEMUSTEXIST| OFN_HIDEREADONLY, szFilters, this);
 
-	if( fileDlg.DoModal ()!=IDOK )
-		goto RET;
+		if( fileDlg.DoModal ()!=IDOK )
+			goto RET;
 
-	strPathname = fileDlg.GetPathName();
+		strPathname = fileDlg.GetPathName();
+	}
+	else
+	{
+		strPathname = pszFile;
+	}
 
 	// read file to buffer
 	if (FALSE == FileReadFileToBuffer(strPathname.GetBuffer(), &buffer) )
@@ -497,4 +519,9 @@ void CNTQTaskMgrDlg::OnDropFiles(HDROP hDropInfo)
 	m_listCtlProcess.DeleteAllItems();
 	PageUpdateProcess(&m_listCtlProcess);
 
+}
+
+void CNTQTaskMgrDlg::SetApp(CNTQTaskMgrApp * objApp)
+{
+	m_objApp = objApp;
 }
