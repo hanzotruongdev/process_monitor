@@ -485,8 +485,13 @@ ULONG PerfDataGetProcessCount(void)
 
 ULONG PerfDataGetProcessorUsage(void)
 {
-	// rount to bounty
-    return (ULONG)(dbIdleTime + 0.5);
+	ULONG ulCpuUsage = 0;
+	ulCpuUsage = (ULONG)(dbIdleTime + 0.5);
+
+	if (ulCpuUsage > 100)
+		ulCpuUsage = 100;
+
+	return ulCpuUsage;
 }
 
 ULONG PerfDataGetProcessorSystemUsage(void)
@@ -572,6 +577,9 @@ ULONG PerfDataGetCPUUsage(ULONG Index)
         CpuUsage = 0;
 
     LeaveCriticalSection(&PerfDataCriticalSection);
+
+	if (CpuUsage > 100)
+		CpuUsage = 100;
 
     return CpuUsage;
 }

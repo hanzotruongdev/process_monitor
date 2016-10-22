@@ -63,7 +63,13 @@ ULONG FileDataGetProcessCount(void)
 
 ULONG FileDataGetProcessorUsage(void)
 {
-    return (ULONG)(g_pHeader->dbIdleTime + 0.5);
+	ULONG ulCpuUsage = 0;
+	ulCpuUsage = (ULONG)(g_pHeader->dbIdleTime + 0.5);
+
+	if (ulCpuUsage > 100)
+		ulCpuUsage = 100;
+
+    return ulCpuUsage;
 }
 
 ULONG FileDataGetProcessorSystemUsage(void)
@@ -131,6 +137,9 @@ ULONG FileDataGetCPUUsage(ULONG Index)
         CpuUsage = g_pData[Index].CPUUsage;
     else
         CpuUsage = 0;
+
+	if (CpuUsage > 100)
+		CpuUsage = 100;
 
     return CpuUsage;
 }
