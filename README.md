@@ -1,2 +1,2 @@
 # NtqTaskMgr
-A simply windows Task Manager. I code it for test performance algorithm
+A simple windows Task Manager which shows the information of process such as the usage of RAM, CPU, disk reading disk writing, etc of every single process.
