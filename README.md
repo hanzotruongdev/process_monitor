@@ -1,2 +1,3 @@
 # NtqTaskMgr
-A simple windows Task Manager which shows the information of process such as the usage of RAM, CPU, disk reading disk writing, etc of every single process.
+I build the task manager tool for monitoring application runing on Windows.
+This tool was written in C/C++ created by Visual Studio durring the time I worked for Bkav Corp.
